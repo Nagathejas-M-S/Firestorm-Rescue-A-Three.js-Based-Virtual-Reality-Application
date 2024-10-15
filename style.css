@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Russo+One&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Orbitron', sans-serif;
+    background-color: #1a0500;  /* Dark, smoky background */
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-image: linear-gradient(45deg, #1a0500 25%, #2a0800 25%, #2a0800 50%, #1a0500 50%, #1a0500 75%, #2a0800 75%, #2a0800 100%);
+    background-size: 40px 40px;
+    animation: move-background 10s linear infinite;
+}
+
+@keyframes move-background {
+    0% {background-position: 0 0;}
+    100% {background-position: 40px 40px;}
+}
+
+.container {
+    text-align: center;
+    background-color: rgba(40, 0, 0, 0.8);  /* Dark, semi-transparent background */
+    padding: 60px;  /* Increased padding */
+    border-radius: 25px;  /* Slightly increased border radius */
+    box-shadow: 0 0 30px rgba(255, 69, 0, 0.7), 0 0 60px rgba(255, 140, 0, 0.5);
+    max-width: 90%;  /* Limit maximum width */
+    width: 600px;  /* Set a fixed width */
+}
+
+h1 {
+    font-family: 'Russo One', sans-serif;
+    font-size: 3.5em;  /* Increased font size */
+    color: #ffcc00;  /* Bright yellow */
+    text-shadow: 
+        0 0 10px #ff4500,
+        0 0 20px #ff4500,
+        0 0 30px #ff4500,
+        0 0 40px #ff0000;
+    margin-bottom: 50px;  /* Increased margin */
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+.buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;  /* Increased gap */
+    align-items: center;
+}
+
+.buttons button, button {
+    font-family: 'Orbitron', sans-serif;
+    padding: 20px 40px;  /* Increased padding */
+    font-size: 20px;  /* Increased font size */
+    font-weight: 700;
+    color: #1a0500;
+    background-color: #ff4500;
+    border: none;
+    border-radius: 50px;
+    box-shadow: 
+        0 4px 10px rgba(255, 69, 0, 0.7),
+        0 0 20px rgba(255, 140, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    width: 80%;  /* Set button width */
+    max-width: 300px;  /* Limit maximum button width */
+}
+
+.buttons button:hover, button:hover {
+    background-color: #ff1a00;
+    color: #fff;
+    transform: scale(1.05) translateY(-3px);
+    box-shadow: 
+        0 6px 15px rgba(255, 69, 0, 0.8),
+        0 0 30px rgba(255, 140, 0, 0.6);
+}
+
+ul {
+    text-align: left;
+    margin: 30px 0;  /* Increased margin */
+    list-style: none;
+}
+
+ul li {
+    margin-bottom: 20px;  /* Increased margin */
+    font-size: 1.3em;  /* Increased font size */
+    text-shadow: 1px 1px 3px rgba(255, 69, 0, 0.5);
+}
+
+ul li:before {
+    content: "🔥";
+    margin-right: 15px;  /* Increased margin */
+    font-size: 1.5em;
+    text-shadow: 0 0 10px #ff4500;
+}
+
+.container p {
+    font-size: 1.3em;  /* Increased font size */
+    margin-top: 30px;  /* Increased margin */
+    color: #ffcc00;
+    text-shadow: 0 0 10px #ff4500;
+}

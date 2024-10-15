@@ -1,0 +1,242 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Russo+One&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Orbitron', sans-serif;
+    background-color: #1a0500;  /* Dark, smoky background */
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-image: linear-gradient(45deg, #1a0500 25%, #2a0800 25%, #2a0800 50%, #1a0500 50%, #1a0500 75%, #2a0800 75%, #2a0800 100%);
+    background-size: 40px 40px;
+    animation: move-background 10s linear infinite;
+}
+
+@keyframes move-background {
+    0% {background-position: 0 0;}
+    100% {background-position: 40px 40px;}
+}
+
+.container {
+    text-align: center;
+    background-color: rgba(40, 0, 0, 0.8);  /* Dark, semi-transparent background */
+    padding: 60px;  /* Increased padding */
+    border-radius: 25px;  /* Slightly increased border radius */
+    box-shadow: 0 0 30px rgba(255, 69, 0, 0.7), 0 0 60px rgba(255, 140, 0, 0.5);
+    max-width: 90%;  /* Limit maximum width */
+    width: 600px;  /* Set a fixed width */
+}
+
+h1 {
+    font-family: 'Russo One', sans-serif;
+    font-size: 3.5em;  /* Increased font size */
+    color: #ffcc00;  /* Bright yellow */
+    text-shadow: 
+        0 0 10px #ff4500,
+        0 0 20px #ff4500,
+        0 0 30px #ff4500,
+        0 0 40px #ff0000;
+    margin-bottom: 50px;  /* Increased margin */
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+.buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;  /* Increased gap */
+    align-items: center;
+}
+
+.buttons button {
+    font-family: 'Orbitron', sans-serif;
+    padding: 20px 40px;  /* Increased padding */
+    font-size: 20px;  /* Increased font size */
+    font-weight: 700;
+    color: #1a0500;
+    background-color: #ff4500;
+    border: none;
+    border-radius: 50px;
+    box-shadow: 
+        0 4px 10px rgba(255, 69, 0, 0.7),
+        0 0 20px rgba(255, 140, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    width: 80%;  /* Set button width */
+    max-width: 300px;  /* Limit maximum button width */
+}
+
+.buttons button:hover {
+    background-color: #ff5722;
+    box-shadow: 0 8px 20px rgba(255, 69, 0, 0.7),
+                0 0 40px rgba(255, 140, 0, 0.5);
+    transform: translateY(-2px);
+}
+
+.pause-button {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    color: white;
+    background-color: red;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    z-index: 10;  /* Ensure it's on top of other elements */
+}
+
+
+/* Bag Icon Styles */
+.bag-icon {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    cursor: pointer;
+    z-index: 10; /* Ensure it's on top of other elements */
+}
+
+.bag-icon img {
+    width: 50px;  /* Adjust size as needed */
+    height: auto;
+}
+
+/* Modal Styles */
+.modal {
+    display: flex;
+    position: fixed;
+    z-index: 100;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.8);  /* Black background with opacity */
+}
+
+.modal-content {
+    background-color: rgba(40, 40, 40, 0.9);  /* Dark semi-transparent background */
+    margin: auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 300px;  /* Set a fixed width for the modal */
+    text-align: center;
+    border-radius: 15px;
+    box-shadow: 0 0 15px rgba(255, 69, 0, 0.8);  /* Fire-like glow */
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+    color: #ff0000; /* Change color on hover */
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.inventory-boxes {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.inventory-box {
+    width: 80px;
+    height: 80px;
+    background-color: #444;  /* Dark box color */
+    border: 2px dashed #ff4500;  /* Orange dashed border */
+    border-radius: 10px; /* Rounded corners */
+    opacity: 0.5; /* Slightly transparent */
+}
+
+/* Fire Strength Bar Styles */
+.fire-strength-container {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;  /* Width of the bar */
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(255, 69, 0, 0.7); /* Glow effect */
+    z-index: 10; /* Ensure it's on top of other elements */
+}
+
+.fire-strength-bar {
+    height: 30px; /* Height of the bar */
+    background-color: #ff4500; /* Fire-like color */
+    border-radius: 10px; /* Rounded corners */
+    text-align: center;
+    line-height: 30px; /* Center text vertically */
+    color: white; /* Text color */
+    font-weight: bold; /* Bold text */
+    position: relative; /* Positioning for fire animation */
+    overflow: hidden; /* Hide overflow for animation */
+}
+
+.fire-strength-bar i {
+    position: absolute;
+    left: 10px; /* Position icon within the bar */
+    top: 50%;
+    transform: translateY(-50%);
+    color: #ff0; /* Color of the fire icon */
+    animation: flame-animation 1s infinite; /* Fire animation */
+}
+
+/* Fire Animation */
+@keyframes flame-animation {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Inventory Modal */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 999; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgb(0,0,0); /* Fallback color */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto; /* 15% from the top and centered */
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%; /* Could be more or less, depending on screen size */
+}
+
+.inventory-boxes {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 10px;
+}
+
+.inventory-box {
+    width: 80px; /* Width of the boxes */
+    height: 80px; /* Height of the boxes */
+    background-color: #ccc; /* Box color */
+    border: 2px dashed #999; /* Dotted border */
+    border-radius: 5px; /* Rounded corners */
+}

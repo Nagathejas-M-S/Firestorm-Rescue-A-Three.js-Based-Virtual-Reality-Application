@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Burning House Escape</title>
+    <link rel="stylesheet" href="ui_style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-k6RqeWeci5ZR/Lv4MR0sA0FfDOMI9c4e99g2eR8j4x0D/I66mA5IsT90yQl2YpUmE08u8CSTlYcIbD4h5PBqg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+    <div class="container" id="ui-screen">
+        <h1>Firestorm Rescue</h1>
+        <div class="buttons" style="display: flex; flex-direction: column; align-items: center; gap: 40px;">
+            <button id="startGame">Start Game</button>
+            <button id="instructions" onclick="window.location.href='instructions.html';">Instructions</button>
+            <button id="endGame" onclick="endGame()">End Game</button>
+        </div>
+    </div>
+
+    <!-- Pause Button -->
+    <button id="pauseButton" class="pause-button" onclick="togglePause()" style="display: none;">Pause</button>
+
+    <!-- Bag Icon -->
+    <div id="bagIcon" class="bag-icon" style="display: none;" onclick="openInventory()">
+        <img src="bag_icon.png" alt="Inventory" />
+    </div>
+
+    <!-- Inventory Modal -->
+    <div id="inventoryModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeInventory()">&times;</span>
+            <h2>Inventory</h2>
+            <div class="inventory-boxes">
+                <div class="inventory-box"></div>
+                <div class="inventory-box"></div>
+                <div class="inventory-box"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fire Strength Bar -->
+    <div id="fireStrengthContainer" class="fire-strength-container" style="display: none;">
+        <div id="fireStrengthBar" class="fire-strength-bar" style="width: 50%;">
+            <i class="fas fa-fire"></i> Fire Strength: 50%
+        </div>
+    </div>
+
+    <!-- Three.js Canvas -->
+    <canvas class="canvas_webgl" style="display: none;"></canvas>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+    <script>
+        // Global variables
+        let scene, camera, renderer, fireLight, model;
+        let isPaused = false;
+
+        // Initialize the 3D Scene
+        function init() {
+            // Create Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000); // Night-like setting
+
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 4.5, 5);  // Adjust the camera position to look at the house
+            camera.lookAt(0, 4.5, 0);  // Make the camera look at the center of the house
+
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({ antialias: true, canvas: document.querySelector('.canvas_webgl') });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            // Add light for fire effect
+            fireLight = new THREE.PointLight(0xff4500, 2, 20);  // Orange fire-like light
+            fireLight.position.set(0, 2, 0);  // Position inside house
+            scene.add(fireLight);
+
+            // Load 3D Model of house
+            const loader = new THREE.GLTFLoader();
+            loader.load('home.glb', function (gltf) {
+                model = gltf.scene;
+                model.scale.set(1, 1, 1); // Adjust model scale if necessary
+                model.position.set(0, 0, 0); // Adjust model position if necessary
+                scene.add(model);
+                animate();  // Start animation loop once model is loaded
+            });
+
+            // Show the pause button and bag icon after the game starts
+            document.getElementById('pauseButton').style.display = 'block'; // Show the pause button
+            document.getElementById('bagIcon').style.display = 'block'; // Show the bag icon
+            document.getElementById('fireStrengthContainer').style.display = 'block'; // Show fire strength bar
+        }
+
+        // Animation Loop
+        function animate() {
+            if (isPaused) return;  // If paused, do not continue
+
+            requestAnimationFrame(animate);
+
+            // Flicker effect for the fire light
+            fireLight.intensity = 2 + Math.sin(Date.now() * 0.005); // Flickering effect
+
+            // Slight camera movement to give dynamism
+            const time = Date.now() * 0.001;
+            const amplitude = 0.5;  // Controls how far left and right the camera toggles
+            const speed = 0.5;      // Speed of toggling (adjust to slow or fast)
+
+            camera.position.x = Math.sin(time * speed) * amplitude;  // Smooth left-right motion
+            camera.lookAt(0, 4.5, 0);  // Always keep camera focused on the house
+
+            renderer.render(scene, camera);
+        }
+
+        // Function to toggle pause state
+        function togglePause() {
+            isPaused = !isPaused;  // Toggle pause state
+            const pauseButton = document.getElementById('pauseButton');
+            pauseButton.innerText = isPaused ? 'Resume' : 'Pause';  // Change button text
+
+            if (isPaused) {
+                console.log('Game paused');
+            } else {
+                console.log('Game resumed');
+                animate();  // Restart animation loop
+            }
+        }
+
+        // Start the game when "Start Game" button is clicked
+        document.getElementById('startGame').addEventListener('click', function() {
+            document.getElementById('ui-screen').style.display = 'none';  // Hide UI
+            document.querySelector('canvas').style.display = 'block';    // Show the canvas
+            init();  // Initialize the 3D scene
+        });
+
+        // End the game function
+        function endGame() {
+            if (confirm('Are you sure you want to quit the game?')) {
+                document.body.innerHTML = '<div class="container"><h1>Thank you for playing!</h1><p>The game has ended. You can close this tab or window.</p></div>';
+            }
+        }
+
+        // Function to open inventory
+        function openInventory() {
+            document.getElementById('inventoryModal').style.display = 'block';
+        }
+
+        // Function to close inventory
+        function closeInventory() {
+            document.getElementById('inventoryModal').style.display = 'none';
+        }
+
+        // Handle window resizing
+        window.addEventListener('resize', function() {
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        });
+    </script>
+</body>
+</html>
