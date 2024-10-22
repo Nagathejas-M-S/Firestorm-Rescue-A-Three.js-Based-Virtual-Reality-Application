@@ -11,7 +11,7 @@
     <div class="container" id="ui-screen">
         <h1>Firestorm Rescue</h1>
         <div class="buttons" style="display: flex; flex-direction: column; align-items: center; gap: 40px;">
-            <button id="startGame">Start Game</button>
+            <button id="startGame">Start</button>
             <button id="instructions" onclick="window.location.href='instructions.html';">Instructions</button>
             <button id="endGame" onclick="endGame()">End Game</button>
         </div>
@@ -78,7 +78,7 @@
 
             // Load 3D Model of house
             const loader = new THREE.GLTFLoader();
-            loader.load('home.glb', function (gltf) {
+            loader.load('./home.glb', function (gltf) {
                 model = gltf.scene;
                 model.scale.set(1, 1, 1); // Adjust model scale if necessary
                 model.position.set(0, 0, 0); // Adjust model position if necessary

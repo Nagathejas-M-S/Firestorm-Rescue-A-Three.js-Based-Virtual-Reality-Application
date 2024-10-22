@@ -48,7 +48,7 @@ h1 {
     letter-spacing: 2px;
 }
 
-.buttons {
+.buttons    {
     display: flex;
     flex-direction: column;
     gap: 40px;  /* Increased gap */
