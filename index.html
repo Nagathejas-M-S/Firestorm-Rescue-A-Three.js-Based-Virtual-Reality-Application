@@ -4,8 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Burning House Escape</title>
+
+    <!-- Load Three.js -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/build/three.min.js"></script>
+
+    <script type="module">
+        import * as fflate from "fflate";
+        window.fflate = fflate; 
+    </script>
+    <!-- Load FBXLoader -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/loaders/FBXLoader.js"></script>
+    
+    <!-- Load GLTFLoader (if needed) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/loaders/GLTFLoader.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+
     <link rel="stylesheet" href="ui_style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-k6RqeWeci5ZR/Lv4MR0sA0FfDOMI9c4e99g2eR8j4x0D/I66mA5IsT90yQl2YpUmE08u8CSTlYcIbD4h5PBqg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+   
 </head>
 <body>
     <div class="container" id="ui-screen">
@@ -20,18 +36,20 @@
     <!-- Pause Button -->
     <button id="pauseButton" class="pause-button" onclick="togglePause()" style="display: none;">Pause</button>
 
-    <!-- Bag Icon -->
     <div id="bagIcon" class="bag-icon" style="display: none;" onclick="openInventory()">
-        <img src="bag_icon.png" alt="Inventory" />
+        <div class="bag-content">
+            <p style="color: #7ED4AD;">Inventory</p>
+            <img src="bag.jpeg" alt="Inventory" />
+        </div>
     </div>
 
     <!-- Inventory Modal -->
     <div id="inventoryModal" class="modal" style="display: none;">
         <div class="modal-content">
             <span class="close" onclick="closeInventory()">&times;</span>
-            <h2>Inventory</h2>
+            <h2 style="color:#7ED4AD;">Inventory</h2>
+
             <div class="inventory-boxes">
-                <div class="inventory-box"></div>
                 <div class="inventory-box"></div>
                 <div class="inventory-box"></div>
             </div>
@@ -48,116 +66,353 @@
     <!-- Three.js Canvas -->
     <canvas class="canvas_webgl" style="display: none;"></canvas>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<!-- ////////////////////////////////////////////////////////////////////////////////////////// -->
+<script>
+    let scene, camera, renderer, fireLight, houseModel, characterModel, mixer;
+    let actions = {}, isPaused = false;
+    const clock = new THREE.Clock();
+    const move = { forward: false, backward: false, left: false, right: false };
+    const cameraOffset = new THREE.Vector3(0, 5, -5);
+    const cameraLookOffset = new THREE.Vector3(0, 1.5, 0);
+    let mouseX = 0, mouseY = 0;
+    const sensitivity = 0.002;
+    let collisionObjects = [];
+    
+function init() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
 
-    <script>
-        // Global variables
-        let scene, camera, renderer, fireLight, model;
-        let isPaused = false;
+    // Camera setup
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-        // Initialize the 3D Scene
-        function init() {
-            // Create Scene
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x000000); // Night-like setting
+    // Renderer setup
+    renderer = new THREE.WebGLRenderer({ antialias: true, canvas: document.querySelector('.canvas_webgl') });
+    renderer.setSize(window.innerWidth, window.innerHeight);
 
-            // Camera setup
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 4.5, 5);  // Adjust the camera position to look at the house
-            camera.lookAt(0, 4.5, 0);  // Make the camera look at the center of the house
+    const ambientLight = new THREE.AmbientLight(0x404040);
+    scene.add(ambientLight);
 
-            // Renderer setup
-            renderer = new THREE.WebGLRenderer({ antialias: true, canvas: document.querySelector('.canvas_webgl') });
-            renderer.setSize(window.innerWidth, window.innerHeight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(5, 10, 7.5).normalize();
+    scene.add(directionalLight);
 
-            // Add light for fire effect
-            fireLight = new THREE.PointLight(0xff4500, 1000, 1000);  // Orange fire-like light
-            fireLight.position.set(0, 2, 0);  // Position inside house
-            scene.add(fireLight);
+    loadHouseModel();
+    loadCharacterModel();
+    loadCollisionModel();
 
-            // Load 3D Model of house
-            const loader = new THREE.GLTFLoader();
-            loader.load('./home.glb', function (gltf) {
-                model = gltf.scene;
-                model.scale.set(1, 1, 1); // Adjust model scale if necessary
-                model.position.set(0, 0, 0); // Adjust model position if necessary
-                scene.add(model);
-                animate();  // Start animation loop once model is loaded
-            });
+    document.getElementById('pauseButton').style.display = 'block';
+    document.getElementById('bagIcon').style.display = 'block';
+    document.getElementById('fireStrengthContainer').style.display = 'block';
 
-            // Show the pause button and bag icon after the game starts
-            document.getElementById('pauseButton').style.display = 'block'; // Show the pause button
-            document.getElementById('bagIcon').style.display = 'block'; // Show the bag icon
-            document.getElementById('fireStrengthContainer').style.display = 'block'; // Show fire strength bar
-        }
+    document.addEventListener('mousemove', handleMouseMove, false);
+}
 
-        // Animation Loop
-        function animate() {
-            if (isPaused) return;  // If paused, do not continue
-
-            requestAnimationFrame(animate);
-
-            // Flicker effect for the fire light
-            fireLight.intensity = 2 + Math.sin(Date.now() * 0.005); // Flickering effect
-
-            // Slight camera movement to give dynamism
-            const time = Date.now() * 0.001;
-            const amplitude = 0.5;  // Controls how far left and right the camera toggles
-            const speed = 0.5;      // Speed of toggling (adjust to slow or fast)
-
-            camera.position.x = Math.sin(time * speed) * amplitude;  // Smooth left-right motion
-            camera.lookAt(0, 4.5, 0);  // Always keep camera focused on the house
-
-            renderer.render(scene, camera);
-        }
-
-        // Function to toggle pause state
-        function togglePause() {
-            isPaused = !isPaused;  // Toggle pause state
-            const pauseButton = document.getElementById('pauseButton');
-            pauseButton.innerText = isPaused ? 'Resume' : 'Pause';  // Change button text
-
-            if (isPaused) {
-                console.log('Game paused');
-            } else {
-                console.log('Game resumed');
-                animate();  // Restart animation loop
-            }
-        }
-
-        // Start the game when "Start Game" button is clicked
-        document.getElementById('startGame').addEventListener('click', function() {
-            document.getElementById('ui-screen').style.display = 'none';  // Hide UI
-            document.querySelector('canvas').style.display = 'block';    // Show the canvas
-            init();  // Initialize the 3D scene
-        });
-
-        // End the game function
-        function endGame() {
-            if (confirm('Are you sure you want to quit the game?')) {
-                document.body.innerHTML = '<div class="container"><h1>Thank you for playing!</h1><p>The game has ended. You can close this tab or window.</p></div>';
-            }
-        }
-
-        // Function to open inventory
-        function openInventory() {
-            document.getElementById('inventoryModal').style.display = 'block';
-        }
-
-        // Function to close inventory
-        function closeInventory() {
-            document.getElementById('inventoryModal').style.display = 'none';
-        }
-
-        // Handle window resizing
-        window.addEventListener('resize', function() {
-            if (camera && renderer) {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
+function loadCollisionModel() {
+    const loader = new THREE.GLTFLoader();
+    loader.load('./home_outline1.glb', (gltf) => {
+        const collisionScene = gltf.scene;
+        collisionScene.traverse((child) => {
+            if (child.isMesh) {
+                const boundingBox = new THREE.Box3().setFromObject(child);
+                boundingBox.min.add(new THREE.Vector3(0.2, 0, 0.2));
+                boundingBox.max.sub(new THREE.Vector3(0.2, 0, 0.2));
+                collisionObjects.push(boundingBox);
+                
+                // Remove debug visualization
+                // No BoxHelper added
             }
         });
-    </script>
+        collisionScene.visible = false; // Hide collision model
+        scene.add(collisionScene);
+    });
+}
+function willCollide(newPosition) {
+    if (!characterModel || collisionObjects.length === 0) return false;
+
+    // Create character hitbox
+    const hitbox = new THREE.Box3();
+    // Make the character hitbox smaller and more appropriate for navigation
+    const characterSize = new THREE.Vector3(0.8, 3, 0.8); // Even smaller hitbox for smoother movement
+    const adjustedPosition = newPosition.clone();
+    adjustedPosition.y += 1.5;
+    
+    hitbox.setFromCenterAndSize(adjustedPosition, characterSize);
+
+    // Remove debug visualization
+    const oldBox = scene.getObjectByName("hitbox");
+    if (oldBox) scene.remove(oldBox);
+
+    const COLLISION_BUFFER = 0.05; // Reduced buffer for tighter collision detection
+    
+    for (const box of collisionObjects) {
+        const testBox = box.clone();
+        testBox.min.sub(new THREE.Vector3(COLLISION_BUFFER, 0, COLLISION_BUFFER));
+        testBox.max.add(new THREE.Vector3(COLLISION_BUFFER, 0, COLLISION_BUFFER));
+        
+        if (hitbox.intersectsBox(testBox)) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+function checkCollision(position) {
+    if (!characterModel || collisionObjects.length === 0) {
+        return false;
+    }
+
+    // Create character bounding box with adjusted size and position
+    const characterBoundingBox = new THREE.Box3();
+    const characterSize = new THREE.Vector3(2, 4, 1.5); // Width, Height, Depth
+    const adjustedPosition = position.clone();
+    adjustedPosition.y += 2; // Vertical offset to center the box
+    
+    // Create test box at the new position
+    characterBoundingBox.setFromCenterAndSize(
+        adjustedPosition,
+        characterSize
+    );
+
+    if (DEBUG_COLLISIONS) {
+        // Remove old debug box if it exists
+        const oldDebugBox = scene.getObjectByName("characterDebugBox");
+        if (oldDebugBox) scene.remove(oldDebugBox);
+        
+        // Add new debug box
+        const debugBox = new THREE.Box3Helper(characterBoundingBox, 0x00ff00);
+        debugBox.name = "characterDebugBox";
+        scene.add(debugBox);
+    }
+
+    // Check collision with each obstacle
+    for (const box of collisionObjects) {
+        if (characterBoundingBox.intersectsBox(box)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+function handleMouseMove(event) {
+    mouseX = (event.clientX / window.innerWidth) - 0.5;
+    mouseY = (event.clientY / window.innerHeight) - 0.5;
+}
+
+function updateCameraPosition() {
+    if (!characterModel) return;
+
+    const characterPosition = new THREE.Vector3();
+    characterModel.getWorldPosition(characterPosition);
+
+    const cameraPosition = new THREE.Vector3();
+    cameraPosition.copy(cameraOffset);
+    cameraPosition.applyQuaternion(characterModel.quaternion);
+    cameraPosition.add(characterPosition);
+
+    camera.position.lerp(cameraPosition, 0.1);
+
+    const lookTarget = new THREE.Vector3();
+    lookTarget.copy(characterPosition).add(cameraLookOffset);
+    lookTarget.x += mouseX * sensitivity;
+    lookTarget.y += mouseY * sensitivity;
+
+    camera.lookAt(lookTarget);
+}
+
+function loadHouseModel() {
+    const loader = new THREE.GLTFLoader();
+    loader.load('./home.glb', (gltf) => {
+        houseModel = gltf.scene;
+        houseModel.position.set(0, 0, 0);
+        scene.add(houseModel);
+        animate();
+    }, undefined, (error) => {
+        console.error('An error occurred loading the house model:', error);
+    });
+}
+
+function loadCharacterModel() {
+    const fbxLoader = new THREE.FBXLoader();
+    fbxLoader.load('./jatka.fbx', (fbx) => {
+        characterModel = fbx;
+        characterModel.position.set(4, 2, 4);
+        characterModel.scale.set(0.03, 0.025, 0.03);
+        characterModel.rotation.y = Math.PI;
+
+        scene.add(characterModel);
+        mixer = new THREE.AnimationMixer(characterModel);
+
+        actions.walking = mixer.clipAction(fbx.animations[0]);
+        actions.walking.loop = THREE.LoopRepeat;
+        actions.walking.paused = true;
+        actions.walking.time = actions.walking.getClip().duration / 2;
+        actions.walking.play();
+
+        fbxLoader.load('./Pick_fruit.fbx', (pick) => {
+            actions.picking = mixer.clipAction(pick.animations[0]);
+            actions.picking.loop = THREE.LoopOnce;
+            actions.picking.clampWhenFinished = true;
+        }, undefined, (error) => {
+            console.error('An error occurred loading the picking animation:', error);
+        });
+
+        updateCameraPosition();
+    }, undefined, (error) => {
+        console.error('An error occurred loading the character model:', error);
+    });
+}
+
+function moveCharacter(deltaX, deltaY, deltaZ) {
+    if (!characterModel) return;
+
+    // Create movement vector and apply character's rotation
+    const moveVector = new THREE.Vector3(deltaX, deltaY, deltaZ);
+    moveVector.applyQuaternion(characterModel.quaternion);
+    
+    // Calculate new position
+    const newPosition = characterModel.position.clone().add(moveVector);
+    
+    // Check for collision at new position
+    if (!checkCollision(newPosition)) {
+        // No collision, update position
+        characterModel.position.copy(newPosition);
+    } else {
+        console.log("Movement blocked by collision");
+    }
+}
+function animate() {
+    requestAnimationFrame(animate);
+    
+    if (isPaused || !characterModel) return;
+    
+    const delta = clock.getDelta();
+    const moveSpeed = 0.04;
+    const rotationSpeed = 0.015;
+
+    // Reverse movement for W and S keys
+    if (move.forward || move.backward) {
+        // Reverse the movement direction for W and S keys
+        const direction = new THREE.Vector3(0, 0, move.forward ? moveSpeed : -moveSpeed);
+        direction.applyQuaternion(characterModel.quaternion);
+        const newPosition = characterModel.position.clone().add(direction);
+
+        if (!willCollide(newPosition)) {
+            characterModel.position.copy(newPosition);
+        } else {
+            const slideOffset = 0.05;
+            const leftSlide = newPosition.clone().add(new THREE.Vector3(-slideOffset, 0, 0));
+            const rightSlide = newPosition.clone().add(new THREE.Vector3(slideOffset, 0, 0));
+            
+            if (!willCollide(leftSlide)) {
+                characterModel.position.copy(leftSlide);
+            } else if (!willCollide(rightSlide)) {
+                characterModel.position.copy(rightSlide);
+            }
+        }
+
+        if (actions.walking) {
+            actions.walking.paused = false;
+            if (!actions.walking.isRunning()) {
+                actions.walking.play();
+            }
+        }
+    } else {
+        if (actions.walking) {
+            actions.walking.paused = true;
+        }
+    }
+
+    if (move.left) {
+        characterModel.rotation.y += rotationSpeed;
+    }
+    if (move.right) {
+        characterModel.rotation.y -= rotationSpeed;
+    }
+
+    if (mixer) mixer.update(delta);
+    updateCameraPosition();
+    renderer.render(scene, camera);
+}
+
+
+function handleKeyDown(event) {
+    switch(event.key.toLowerCase()) {
+        case 'w': 
+            move.forward = true;
+            break;
+        case 's': 
+            move.backward = true;
+            break;
+        case 'a': 
+            move.left = true;
+            break;
+        case 'd': 
+            move.right = true;
+            break;
+    }
+}
+
+function handleKeyUp(event) {
+    switch(event.key.toLowerCase()) {
+        case 'w': 
+            move.forward = false;
+            if (actions.walking) actions.walking.paused = true;
+            break;
+        case 's': 
+            move.backward = false;
+            if (actions.walking) actions.walking.paused = true;
+            break;
+        case 'a': 
+            move.left = false;
+            break;
+        case 'd': 
+            move.right = false;
+            break;
+    }
+}
+
+
+    function openInventory() {
+        document.getElementById('inventoryModal').style.display = 'block';
+    }
+    
+    function closeInventory() {
+        document.getElementById('inventoryModal').style.display = 'none';
+    }
+    
+    function addItemToInventory() {
+        console.log("Item picked");
+    }
+    
+    function dropItemFromInventory() {
+        console.log("Item dropped");
+    }
+
+document.addEventListener('keydown', handleKeyDown);
+document.addEventListener('keyup', handleKeyUp);
+
+document.getElementById('startGame').addEventListener('click', function() {
+    document.getElementById('ui-screen').style.display = 'none';
+    document.querySelector('canvas').style.display = 'block';
+    init();
+    animate();
+});
+
+function endGame() {
+    if (confirm('Are you sure you want to quit the game?')) {
+        document.body.innerHTML = '<div class="container"><h1>Thank you for playing!</h1><p>The game has ended. You can close this tab or window.</p></div>';
+    }
+}
+
+window.addEventListener('resize', function() {
+    if (camera && renderer) {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+});
+
+</script>
 </body>
 </html>
