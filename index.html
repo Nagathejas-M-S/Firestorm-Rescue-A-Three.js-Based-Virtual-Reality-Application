@@ -223,10 +223,12 @@ function updateCameraPosition() {
 function loadHouseModel() {
     const loader = new THREE.GLTFLoader();
     loader.load('./home.glb', (gltf) => {
+        console.log("model loadading");
         houseModel = gltf.scene;
         houseModel.position.set(0, 0, 0);
         scene.add(houseModel);
         animate();
+        console.log("model loaded success");
     }, undefined, (error) => {
         console.error('An error occurred loading the house model:', error);
     });

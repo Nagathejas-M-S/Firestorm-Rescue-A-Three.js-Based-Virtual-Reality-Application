@@ -1,0 +1,14 @@
+{
+    "headers": [
+      {
+        "source": "/models/:modelName",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "/gltf-binary"
+          }
+        ]
+      }
+    ]
+  }
+  
