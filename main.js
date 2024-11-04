@@ -1,5 +1,6 @@
 // import './style.css';
 import * as THREE from 'three';
+
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js'; 
 let scene, camera, renderer, fireLight;

@@ -1,5 +1,26 @@
 {
+    "headers": [
+      {
+        "source": "/models/(.*).glb",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "model/gltf-binary"
+          }
+        ]
+      },
+      {
+        "source": "/models/(.*).fbx",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/octet-stream"
+          }
+        ]
+      }
+    ],
     "rewrites": [
       { "source": "/(.*)", "destination": "/" }
     ]
   }
+  
