@@ -1,7 +1,7 @@
 {
     "headers": [
       {
-        "source": "/models/(.*).glb",
+        "source": "/(.*).glb",
         "headers": [
           {
             "key": "Content-Type",
@@ -10,7 +10,7 @@
         ]
       },
       {
-        "source": "/models/(.*).fbx",
+        "source": "/(.*).fbx",
         "headers": [
           {
             "key": "Content-Type",
