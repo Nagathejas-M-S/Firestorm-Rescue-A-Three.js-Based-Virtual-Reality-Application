@@ -109,7 +109,7 @@ function init() {
 
 function loadCollisionModel() {
     const loader = new THREE.GLTFLoader();
-    loader.load('./home_outline1.glb', (gltf) => {
+    loader.load('/home_outline1.glb', (gltf) => {
         const collisionScene = gltf.scene;
         collisionScene.traverse((child) => {
             if (child.isMesh) {
@@ -222,7 +222,7 @@ function updateCameraPosition() {
 
 function loadHouseModel() {
     const loader = new THREE.GLTFLoader();
-    loader.load('./home.glb', (gltf) => {
+    loader.load('/home.glb', (gltf) => {
         console.log("model loadading");
         houseModel = gltf.scene;
         houseModel.position.set(0, 0, 0);
@@ -236,7 +236,7 @@ function loadHouseModel() {
 
 function loadCharacterModel() {
     const fbxLoader = new THREE.FBXLoader();
-    fbxLoader.load('./jatka.fbx', (fbx) => {
+    fbxLoader.load('/jatka.fbx', (fbx) => {
         characterModel = fbx;
         characterModel.position.set(4, 2, 4);
         characterModel.scale.set(0.03, 0.025, 0.03);
@@ -251,7 +251,7 @@ function loadCharacterModel() {
         actions.walking.time = actions.walking.getClip().duration / 2;
         actions.walking.play();
 
-        fbxLoader.load('./Pick_fruit.fbx', (pick) => {
+        fbxLoader.load('/Pick_fruit.fbx', (pick) => {
             actions.picking = mixer.clipAction(pick.animations[0]);
             actions.picking.loop = THREE.LoopOnce;
             actions.picking.clampWhenFinished = true;
