@@ -25,7 +25,7 @@ let scene, camera, renderer, fireLight;
 
             // Load 3D Model of house and character
             const loader = new THREE.GLTFLoader();
-            loader.load('home.glb', function (gltf) {
+            loader.load('https://firestorm-rescue.vercel.app/house.glb', function (gltf) {
                 const model = gltf.scene;
                 scene.add(model);
 
