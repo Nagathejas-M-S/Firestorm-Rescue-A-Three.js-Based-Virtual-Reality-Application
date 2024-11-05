@@ -70,353 +70,350 @@
 
 <!-- ////////////////////////////////////////////////////////////////////////////////////////// -->
 <script>
-    let scene, camera, renderer, fireLight, houseModel, characterModel, mixer;
-    let actions = {}, isPaused = false;
-    const clock = new THREE.Clock();
-    const move = { forward: false, backward: false, left: false, right: false };
-    const cameraOffset = new THREE.Vector3(0, 5, -5);
-    const cameraLookOffset = new THREE.Vector3(0, 1.5, 0);
-    let mouseX = 0, mouseY = 0;
-    const sensitivity = 0.002;
-    let collisionObjects = [];
-    
-function init() {
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x000000);
-
-    // Camera setup
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-
-    // Renderer setup
-    renderer = new THREE.WebGLRenderer({ antialias: true, canvas: document.querySelector('.canvas_webgl') });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-
-    const ambientLight = new THREE.AmbientLight(0x404040);
-    scene.add(ambientLight);
-
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(5, 10, 7.5).normalize();
-    scene.add(directionalLight);
-
-    loadHouseModel();
-    loadCharacterModel();
-    loadCollisionModel();
-
-    document.getElementById('pauseButton').style.display = 'block';
-    document.getElementById('bagIcon').style.display = 'block';
-    document.getElementById('fireStrengthContainer').style.display = 'block';
-
-    document.addEventListener('mousemove', handleMouseMove, false);
-}
-
-function loadCollisionModel() {
-    const loader = new THREE.GLTFLoader();
-    loader.load('/home_outline1.glb', (gltf) => {
-        const collisionScene = gltf.scene;
-        collisionScene.traverse((child) => {
-            if (child.isMesh) {
-                const boundingBox = new THREE.Box3().setFromObject(child);
-                boundingBox.min.add(new THREE.Vector3(0.2, 0, 0.2));
-                boundingBox.max.sub(new THREE.Vector3(0.2, 0, 0.2));
-                collisionObjects.push(boundingBox);
-                
-                // Remove debug visualization
-                // No BoxHelper added
-            }
-        });
-        collisionScene.visible = false; // Hide collision model
-        scene.add(collisionScene);
-    });
-}
-function willCollide(newPosition) {
-    if (!characterModel || collisionObjects.length === 0) return false;
-
-    // Create character hitbox
-    const hitbox = new THREE.Box3();
-    // Make the character hitbox smaller and more appropriate for navigation
-    const characterSize = new THREE.Vector3(0.8, 3, 0.8); // Even smaller hitbox for smoother movement
-    const adjustedPosition = newPosition.clone();
-    adjustedPosition.y += 1.5;
-    
-    hitbox.setFromCenterAndSize(adjustedPosition, characterSize);
-
-    // Remove debug visualization
-    const oldBox = scene.getObjectByName("hitbox");
-    if (oldBox) scene.remove(oldBox);
-
-    const COLLISION_BUFFER = 0.05; // Reduced buffer for tighter collision detection
-    
-    for (const box of collisionObjects) {
-        const testBox = box.clone();
-        testBox.min.sub(new THREE.Vector3(COLLISION_BUFFER, 0, COLLISION_BUFFER));
-        testBox.max.add(new THREE.Vector3(COLLISION_BUFFER, 0, COLLISION_BUFFER));
-        
-        if (hitbox.intersectsBox(testBox)) {
-            return true;
-        }
+// Constants and configurations
+// Constants and configurations
+// Constants and configurations
+const CONFIG = {
+    modelPaths: {
+        house: '/models/home.glb',
+        character: '/models/jatka.fbx',
+        collision: '/models/home_outline1.glb',
+        pickAnimation: '/models/Pick_fruit.fbx'
+    },
+    character: {
+        scale: new THREE.Vector3(0.03, 0.025, 0.03),
+        startPosition: new THREE.Vector3(4, 2, 4),
+        hitboxSize: new THREE.Vector3(0.8, 3, 0.8)
+    },
+    camera: {
+        offset: new THREE.Vector3(0, 5, -5),
+        lookOffset: new THREE.Vector3(0, 1.5, 0),
+        sensitivity: 0.002
+    },
+    movement: {
+        speed: 0.04,
+        rotationSpeed: 0.015,
+        slideOffset: 0.05
     }
-    
-    return false;
-}
+};
 
-function checkCollision(position) {
-    if (!characterModel || collisionObjects.length === 0) {
-        return false;
-    }
-
-    // Create character bounding box with adjusted size and position
-    const characterBoundingBox = new THREE.Box3();
-    const characterSize = new THREE.Vector3(2, 4, 1.5); // Width, Height, Depth
-    const adjustedPosition = position.clone();
-    adjustedPosition.y += 2; // Vertical offset to center the box
-    
-    // Create test box at the new position
-    characterBoundingBox.setFromCenterAndSize(
-        adjustedPosition,
-        characterSize
-    );
-
-    if (DEBUG_COLLISIONS) {
-        // Remove old debug box if it exists
-        const oldDebugBox = scene.getObjectByName("characterDebugBox");
-        if (oldDebugBox) scene.remove(oldDebugBox);
-        
-        // Add new debug box
-        const debugBox = new THREE.Box3Helper(characterBoundingBox, 0x00ff00);
-        debugBox.name = "characterDebugBox";
-        scene.add(debugBox);
-    }
-
-    // Check collision with each obstacle
-    for (const box of collisionObjects) {
-        if (characterBoundingBox.intersectsBox(box)) {
-            return true;
+// Asset loader class
+class AssetLoader {
+    static async loadGLTF(path) {
+        const loader = new THREE.GLTFLoader();
+        try {
+            const gltf = await new Promise((resolve, reject) => {
+                loader.load(path, 
+                    (gltf) => resolve(gltf),
+                    undefined,
+                    (error) => reject(new Error(`Failed to load GLTF model ${path}: ${error.message}`))
+                );
+            });
+            return gltf;
+        } catch (error) {
+            console.error(error);
+            throw error;
         }
     }
 
-    return false;
-}
-function handleMouseMove(event) {
-    mouseX = (event.clientX / window.innerWidth) - 0.5;
-    mouseY = (event.clientY / window.innerHeight) - 0.5;
-}
-
-function updateCameraPosition() {
-    if (!characterModel) return;
-
-    const characterPosition = new THREE.Vector3();
-    characterModel.getWorldPosition(characterPosition);
-
-    const cameraPosition = new THREE.Vector3();
-    cameraPosition.copy(cameraOffset);
-    cameraPosition.applyQuaternion(characterModel.quaternion);
-    cameraPosition.add(characterPosition);
-
-    camera.position.lerp(cameraPosition, 0.1);
-
-    const lookTarget = new THREE.Vector3();
-    lookTarget.copy(characterPosition).add(cameraLookOffset);
-    lookTarget.x += mouseX * sensitivity;
-    lookTarget.y += mouseY * sensitivity;
-
-    camera.lookAt(lookTarget);
-}
-
-function loadHouseModel() {
-    const loader = new THREE.GLTFLoader();
-    loader.load('/home.glb', (gltf) => {
-        console.log("model loadading");
-        houseModel = gltf.scene;
-        houseModel.position.set(0, 0, 0);
-        scene.add(houseModel);
-        animate();
-        console.log("model loaded success");
-    }, undefined, (error) => {
-        console.error('An error occurred loading the house model:', error);
-    });
-}
-
-function loadCharacterModel() {
-    const fbxLoader = new THREE.FBXLoader();
-    fbxLoader.load('/jatka.fbx', (fbx) => {
-        characterModel = fbx;
-        characterModel.position.set(4, 2, 4);
-        characterModel.scale.set(0.03, 0.025, 0.03);
-        characterModel.rotation.y = Math.PI;
-
-        scene.add(characterModel);
-        mixer = new THREE.AnimationMixer(characterModel);
-
-        actions.walking = mixer.clipAction(fbx.animations[0]);
-        actions.walking.loop = THREE.LoopRepeat;
-        actions.walking.paused = true;
-        actions.walking.time = actions.walking.getClip().duration / 2;
-        actions.walking.play();
-
-        fbxLoader.load('/Pick_fruit.fbx', (pick) => {
-            actions.picking = mixer.clipAction(pick.animations[0]);
-            actions.picking.loop = THREE.LoopOnce;
-            actions.picking.clampWhenFinished = true;
-        }, undefined, (error) => {
-            console.error('An error occurred loading the picking animation:', error);
-        });
-
-        updateCameraPosition();
-    }, undefined, (error) => {
-        console.error('An error occurred loading the character model:', error);
-    });
-}
-
-function moveCharacter(deltaX, deltaY, deltaZ) {
-    if (!characterModel) return;
-
-    // Create movement vector and apply character's rotation
-    const moveVector = new THREE.Vector3(deltaX, deltaY, deltaZ);
-    moveVector.applyQuaternion(characterModel.quaternion);
-    
-    // Calculate new position
-    const newPosition = characterModel.position.clone().add(moveVector);
-    
-    // Check for collision at new position
-    if (!checkCollision(newPosition)) {
-        // No collision, update position
-        characterModel.position.copy(newPosition);
-    } else {
-        console.log("Movement blocked by collision");
+    static async loadFBX(path) {
+        const loader = new THREE.FBXLoader();
+        try {
+            const fbx = await new Promise((resolve, reject) => {
+                loader.load(path,
+                    (fbx) => resolve(fbx),
+                    undefined,
+                    (error) => reject(new Error(`Failed to load FBX model ${path}: ${error.message}`))
+                );
+            });
+            return fbx;
+        } catch (error) {
+            console.error(error);
+            throw error;
+        }
     }
 }
-function animate() {
-    requestAnimationFrame(animate);
-    
-    if (isPaused || !characterModel) return;
-    
-    const delta = clock.getDelta();
-    const moveSpeed = 0.04;
-    const rotationSpeed = 0.015;
 
-    // Reverse movement for W and S keys
-    if (move.forward || move.backward) {
-        // Reverse the movement direction for W and S keys
-        const direction = new THREE.Vector3(0, 0, move.forward ? moveSpeed : -moveSpeed);
-        direction.applyQuaternion(characterModel.quaternion);
-        const newPosition = characterModel.position.clone().add(direction);
+// Game class
+class Game {
+    constructor() {
+        // Initialize properties
+        this.scene = new THREE.Scene();
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.renderer = new THREE.WebGLRenderer({ 
+            antialias: true, 
+            canvas: document.querySelector('.canvas_webgl') 
+        });
+        this.clock = new THREE.Clock();
+        this.mixer = null;
+        this.actions = {};
+        this.move = { forward: false, backward: false, left: false, right: false };
+        this.collisionObjects = [];
+        this.isPaused = false;
+        this.mouseX = 0;
+        this.mouseY = 0;
+        this.characterModel = null;
 
-        if (!willCollide(newPosition)) {
-            characterModel.position.copy(newPosition);
-        } else {
-            const slideOffset = 0.05;
-            const leftSlide = newPosition.clone().add(new THREE.Vector3(-slideOffset, 0, 0));
-            const rightSlide = newPosition.clone().add(new THREE.Vector3(slideOffset, 0, 0));
+        // Initialize game systems
+        this.initRenderer();
+        this.initLights();
+        this.initEventListeners();
+    }
+
+    initRenderer() {
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    }
+
+    initLights() {
+        // Ambient light
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        this.scene.add(ambientLight);
+
+        // Directional light
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 5, 5);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 1024;
+        directionalLight.shadow.mapSize.height = 1024;
+        this.scene.add(directionalLight);
+    }
+
+    initEventListeners() {
+        // Window resize
+        window.addEventListener('resize', () => this.handleResize());
+        
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => this.handleKeyDown(e));
+        document.addEventListener('keyup', (e) => this.handleKeyUp(e));
+        
+        // Mouse movement
+        document.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+        
+        // Pause button
+        const pauseButton = document.getElementById('pauseButton');
+        if (pauseButton) {
+            pauseButton.addEventListener('click', () => this.togglePause());
+        }
+    }
+
+    handleResize() {
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    handleKeyDown(event) {
+        switch(event.code) {
+            case 'KeyW': this.move.forward = true; break;
+            case 'KeyS': this.move.backward = true; break;
+            case 'KeyA': this.move.left = true; break;
+            case 'KeyD': this.move.right = true; break;
+            case 'Escape': this.togglePause(); break;
+        }
+    }
+
+    handleKeyUp(event) {
+        switch(event.code) {
+            case 'KeyW': this.move.forward = false; break;
+            case 'KeyS': this.move.backward = false; break;
+            case 'KeyA': this.move.left = false; break;
+            case 'KeyD': this.move.right = false; break;
+        }
+    }
+
+    handleMouseMove(event) {
+        this.mouseX = (event.clientX / window.innerWidth) - 0.5;
+        this.mouseY = (event.clientY / window.innerHeight) - 0.5;
+    }
+
+    async loadModels() {
+        try {
+            // Load house
+            const houseGLTF = await AssetLoader.loadGLTF(CONFIG.modelPaths.house);
+            this.houseModel = houseGLTF.scene;
+            this.scene.add(this.houseModel);
+
+            // Load character
+            const characterFBX = await AssetLoader.loadFBX(CONFIG.modelPaths.character);
+            this.characterModel = characterFBX;
             
-            if (!willCollide(leftSlide)) {
-                characterModel.position.copy(leftSlide);
-            } else if (!willCollide(rightSlide)) {
-                characterModel.position.copy(rightSlide);
+            // Normalize skinning weights
+            this.characterModel.traverse((child) => {
+                if (child.isMesh && child.geometry && child.geometry.attributes.skinWeight) {
+                    const weights = child.geometry.attributes.skinWeight;
+                    for (let i = 0; i < weights.count; i++) {
+                        const x = weights.getX(i);
+                        const y = weights.getY(i);
+                        const z = weights.getZ(i);
+                        const w = weights.getW(i);
+                        const sum = x + y + z + w;
+                        if (sum !== 0) {
+                            weights.setXYZW(i, x/sum, y/sum, z/sum, w/sum);
+                        }
+                    }
+                }
+            });
+            this.setupCharacter();
+
+            // Load collision model
+            const collisionGLTF = await AssetLoader.loadGLTF(CONFIG.modelPaths.collision);
+            this.setupCollision(collisionGLTF.scene);
+
+            // Show UI elements
+            this.showUIElements();
+            
+            // Start animation loop
+            this.animate();
+        } catch (error) {
+            console.error('Failed to load models:', error);
+            alert('Failed to start game. Please refresh the page.');
+        }
+    }
+
+    setupCharacter() {
+        this.characterModel.scale.copy(CONFIG.character.scale);
+        this.characterModel.position.copy(CONFIG.character.startPosition);
+        
+        // Setup character animations
+        this.mixer = new THREE.AnimationMixer(this.characterModel);
+        if (this.characterModel.animations.length) {
+            this.actions.idle = this.mixer.clipAction(this.characterModel.animations[0]);
+            this.actions.idle.play();
+        }
+
+        this.scene.add(this.characterModel);
+    }
+
+    setupCollision(collisionModel) {
+        collisionModel.traverse((child) => {
+            if (child.isMesh) {
+                child.visible = false; // Hide collision meshes
+                this.collisionObjects.push(child);
+            }
+        });
+        this.scene.add(collisionModel);
+    }
+
+    updateCamera() {
+        if (!this.characterModel) return;
+
+        const characterPosition = new THREE.Vector3();
+        this.characterModel.getWorldPosition(characterPosition);
+
+        // Calculate camera position
+        const cameraPosition = new THREE.Vector3();
+        cameraPosition.copy(CONFIG.camera.offset);
+        cameraPosition.applyQuaternion(this.characterModel.quaternion);
+        cameraPosition.add(characterPosition);
+
+        // Smooth camera movement
+        this.camera.position.lerp(cameraPosition, 0.1);
+
+        // Calculate look target with mouse influence
+        const lookTarget = new THREE.Vector3();
+        lookTarget.copy(characterPosition).add(CONFIG.camera.lookOffset);
+        lookTarget.x += this.mouseX * CONFIG.camera.sensitivity;
+        lookTarget.y += this.mouseY * CONFIG.camera.sensitivity;
+
+        this.camera.lookAt(lookTarget);
+    }
+
+    updateCharacterMovement(delta) {
+        if (!this.characterModel) return;
+
+        const moveSpeed = CONFIG.movement.speed * delta;
+        const rotationSpeed = CONFIG.movement.rotationSpeed;
+        
+        // Calculate movement direction
+        const movement = new THREE.Vector3();
+        if (this.move.forward) movement.z -= moveSpeed;
+        if (this.move.backward) movement.z += moveSpeed;
+        if (this.move.left) movement.x -= moveSpeed;
+        if (this.move.right) movement.x += moveSpeed;
+
+        // Apply movement relative to character rotation
+        movement.applyQuaternion(this.characterModel.quaternion);
+        
+        // Check for collisions
+        const raycaster = new THREE.Raycaster();
+        const position = this.characterModel.position.clone();
+        
+        // Cast rays in movement direction
+        if (movement.length() > 0) {
+            raycaster.set(position, movement.clone().normalize());
+            const intersects = raycaster.intersectObjects(this.collisionObjects);
+            
+            if (intersects.length === 0 || intersects[0].distance > movement.length()) {
+                this.characterModel.position.add(movement);
+            } else {
+                // Handle sliding along walls
+                const normal = intersects[0].face.normal;
+                const slide = movement.clone()
+                    .projectOnPlane(normal)
+                    .multiplyScalar(CONFIG.movement.slideOffset);
+                this.characterModel.position.add(slide);
             }
         }
+    }
 
-        if (actions.walking) {
-            actions.walking.paused = false;
-            if (!actions.walking.isRunning()) {
-                actions.walking.play();
-            }
+    animate() {
+        if (this.isPaused) return;
+
+        requestAnimationFrame(() => this.animate());
+        
+        const delta = this.clock.getDelta();
+        this.updateCharacterMovement(delta);
+        
+        if (this.mixer) this.mixer.update(delta);
+        this.updateCamera();
+        this.renderer.render(this.scene, this.camera);
+    }
+
+    togglePause() {
+        this.isPaused = !this.isPaused;
+        if (!this.isPaused) this.animate();
+        
+        // Update UI
+        const pauseButton = document.getElementById('pauseButton');
+        if (pauseButton) {
+            pauseButton.textContent = this.isPaused ? 'Resume' : 'Pause';
         }
-    } else {
-        if (actions.walking) {
-            actions.walking.paused = true;
-        }
     }
 
-    if (move.left) {
-        characterModel.rotation.y += rotationSpeed;
-    }
-    if (move.right) {
-        characterModel.rotation.y -= rotationSpeed;
-    }
-
-    if (mixer) mixer.update(delta);
-    updateCameraPosition();
-    renderer.render(scene, camera);
-}
-
-
-function handleKeyDown(event) {
-    switch(event.key.toLowerCase()) {
-        case 'w': 
-            move.forward = true;
-            break;
-        case 's': 
-            move.backward = true;
-            break;
-        case 'a': 
-            move.left = true;
-            break;
-        case 'd': 
-            move.right = true;
-            break;
+    showUIElements() {
+        document.getElementById('pauseButton').style.display = 'block';
+        document.getElementById('bagIcon').style.display = 'block';
+        document.getElementById('fireStrengthContainer').style.display = 'block';
     }
 }
 
-function handleKeyUp(event) {
-    switch(event.key.toLowerCase()) {
-        case 'w': 
-            move.forward = false;
-            if (actions.walking) actions.walking.paused = true;
-            break;
-        case 's': 
-            move.backward = false;
-            if (actions.walking) actions.walking.paused = true;
-            break;
-        case 'a': 
-            move.left = false;
-            break;
-        case 'd': 
-            move.right = false;
-            break;
-    }
-}
-
-
-    function openInventory() {
-        document.getElementById('inventoryModal').style.display = 'block';
-    }
-    
-    function closeInventory() {
-        document.getElementById('inventoryModal').style.display = 'none';
-    }
-    
-    function addItemToInventory() {
-        console.log("Item picked");
-    }
-    
-    function dropItemFromInventory() {
-        console.log("Item dropped");
-    }
-
-document.addEventListener('keydown', handleKeyDown);
-document.addEventListener('keyup', handleKeyUp);
-
-document.getElementById('startGame').addEventListener('click', function() {
+// Game initialization
+document.getElementById('startGame').addEventListener('click', () => {
     document.getElementById('ui-screen').style.display = 'none';
-    document.querySelector('canvas').style.display = 'block';
-    init();
-    animate();
+    document.querySelector('.canvas_webgl').style.display = 'block';
+    
+    const game = new Game();
+    game.loadModels().catch(error => {
+        console.error('Failed to initialize game:', error);
+        alert('Failed to start game. Please refresh the page.');
+    });
 });
+
+// Inventory functions
+function openInventory() {
+    document.getElementById('inventoryModal').style.display = 'block';
+}
+
+function closeInventory() {
+    document.getElementById('inventoryModal').style.display = 'none';
+}
 
 function endGame() {
-    if (confirm('Are you sure you want to quit the game?')) {
-        document.body.innerHTML = '<div class="container"><h1>Thank you for playing!</h1><p>The game has ended. You can close this tab or window.</p></div>';
-    }
+    window.location.reload();
 }
-
-window.addEventListener('resize', function() {
-    if (camera && renderer) {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-});
-
 </script>
 </body>
 </html>

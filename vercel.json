@@ -1,25 +1,35 @@
 {
   "headers": [
-      {
-          "source": "/(.*)\\.glb",
-          "headers": [
-              {
-                  "key": "Content-Type",
-                  "value": "model/gltf-binary"
-              }
-          ]
-      },
-      {
-          "source": "/(.*)\\.fbx",
-          "headers": [
-              {
-                  "key": "Content-Type",
-                  "value": "application/octet-stream"
-              }
-          ]
-      }
+    {
+      "source": "/models/(.*)\\.glb",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "model/gltf-binary"
+        }
+      ]
+    },
+    {
+      "source": "/models/(.*)\\.fbx",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/octet-stream"
+        }
+      ]
+    }
   ],
   "rewrites": [
-      { "source": "/(.*)", "destination": "/" }
+    {
+      "source": "/((?!models/).*)",
+      "destination": "/"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/models/(.*)",
+      "dest": "/models/$1",
+      "continue": true
+    }
   ]
 }
