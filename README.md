@@ -78,15 +78,7 @@ npm start
 4. Monitor fire strength and health levels during missions
 5. Complete rescue objectives within the time limit
 
-## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-[Add your chosen license here]
-
-## Credits
 
 - Three.js - 3D Graphics Library
 - [Add additional credits for assets, libraries, etc.]
