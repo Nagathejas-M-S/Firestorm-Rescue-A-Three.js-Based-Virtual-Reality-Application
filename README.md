@@ -24,7 +24,7 @@ Firestorm Rescue is an immersive AR/VR experience that challenges players to nav
 ## Game Components
 
 ### Core Systems
-- *Timer System*: 3-minute countdown for mission completion
+- *Timer System*: 9-minute countdown for mission completion
 - *Health System*: Player health monitoring
 - *Fire Strength Monitoring*: Dynamic fire intensity tracking
 - *Inventory Management*: Equipment and tool management system
@@ -32,7 +32,6 @@ Firestorm Rescue is an immersive AR/VR experience that challenges players to nav
 ### UI Elements
 - *Main Menu*:
   - Start
-  - Story
   - Instructions
   - End Game
 - *In-Game UI*:
@@ -67,7 +66,7 @@ npm install
 
 4. Start the development server:
 bash
-npm start
+npm run dev
 
 
 ## Usage
@@ -79,10 +78,3 @@ npm start
 5. Complete rescue objectives within the time limit
 
 
-
-- Three.js - 3D Graphics Library
-- [Add additional credits for assets, libraries, etc.]
-
-## Contact
-
-[Add your contact information or GitHub profile]
