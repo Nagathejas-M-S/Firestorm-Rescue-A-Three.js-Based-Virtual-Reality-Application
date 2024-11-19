@@ -52,7 +52,7 @@ Firestorm Rescue is an immersive AR/VR experience that challenges players to nav
 
 1. Clone the repository:
 bash
-git clone https://github.com/yourusername/firestorm-rescue.git
+git clone https://github.com/Nagathejas-M-S/firestorm-rescue.git
 
 
 2. Navigate to the project directory:
