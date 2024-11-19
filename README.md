@@ -13,7 +13,7 @@ Firestorm Rescue is an immersive AR/VR experience that challenges players to nav
 - *Real-time Challenges*: 
   - Dynamic fire strength monitoring
   - Health system
-  - Time-based missions (3-minute countdown)
+  - Time-based missions (9-minute countdown)
 - *Interactive UI Elements*:
   - Inventory management with visual representation
   - Fire strength indicator
