@@ -1,6 +1,10 @@
 # Firestorm Rescue 🚒
 
-A Three.js-based Augmented/Virtual Reality game where players take on the role of a firefighter in emergency rescue missions.
+A Three.js-based Augmented/Virtual Reality application where players take on the role of a firefighter in emergency rescue missions.
+
+## Direct URL to run the application
+- Open your browser.
+   - Navigate to [https://fire-res-com-3.vercel.app/](https://fire-res-com-3.vercel.app/).
 
 ## Overview
 
@@ -45,18 +49,17 @@ Firestorm Rescue is an immersive AR/VR experience that challenges players to nav
 
 - Modern web browser with WebGL support
 - Three.js library
-- Compatible AR/VR hardware (recommended)
 
 ## Installation
 
 1. Clone the repository:
 bash
-git clone https://github.com/Nagathejas-M-S/firestorm-rescue.git
+git clone https://github.com/Nagathejas-M-S/fire-storm-rescue.git
 
 
 2. Navigate to the project directory:
 bash
-cd firestorm-rescue
+cd fire-storm-rescue
 
 
 3. Install dependencies:
@@ -71,10 +74,15 @@ npm run dev
 
 ## Usage
 
-1. Launch the game through your web browser
+1. Launch the application through your web browser
 2. Select game mode from the main menu
 3. Use the inventory system to manage rescue equipment
 4. Monitor fire strength and health levels during missions
 5. Complete rescue objectives within the time limit
 
+## Keyboard Usage
+
+1. W,A,S,D keys for navigation
+2. E key to pickup fire extinguisher
+3. F key to spray the fire extinguisher
 
