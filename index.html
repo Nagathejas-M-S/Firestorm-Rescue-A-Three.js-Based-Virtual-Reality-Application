@@ -3,417 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Burning House Escape</title>
-
-    <!-- Load Three.js -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/build/three.min.js"></script>
-
-    <!-- <script type="module">
-        import * as fflate from "fflate";
-        window.fflate = fflate; 
-    </script> -->
-
-    <script src="https://cdn.jsdelivr.net/npm/fflate@0.7.4/umd/index.js"></script>
-    <!-- Load FBXLoader -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/loaders/FBXLoader.js"></script>
-    
-    <!-- Load GLTFLoader (if needed) -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.145.0/examples/js/loaders/GLTFLoader.js"></script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
-
-    <link rel="stylesheet" href="ui_style.css">
-   
+    <title>Firestorm Rescue</title>
+    <link rel="stylesheet" href="/ui_style.css">
+    <!-- Suppress favicon error -->
+    <link rel="icon" href="data:,">
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; }
+        .canvas_webgl { display: none; }
+        .container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+        }
+        #loadingScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #fff;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .modal-content {
+            background: #16213e;
+            padding: 30px;
+            border-radius: 15px;
+            border: 2px solid #FF6500;
+            width: 90%;
+            max-width: 300px;
+            position: relative;
+            /* Add this to ensure content inside is centered */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        #modal-buttons button {
+            padding: 10px 20px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #modal-ok, #modal-confirm { background-color: #4CAF50; color: white; }
+        #modal-cancel { background-color: #f44336; color: white; }
+    </style>
 </head>
 <body>
+    <!-- Audio Elements with corrected paths -->
+    <audio id="walkingSound" src="/jatka.mp3" loop></audio>
+    <audio id="shootingSound" src="/shoot.mp3" loop></audio>
+    <audio id="painSound" src="/pain.mp3"></audio> <!-- Removed loop from pain sound -->
+    <audio id="fireSound" src="/fire2.mp3" loop></audio>
+
+    <!-- UI Screens -->
     <div class="container" id="ui-screen">
         <h1>Firestorm Rescue</h1>
         <div class="buttons" style="display: flex; flex-direction: column; align-items: center; gap: 40px;">
             <button id="startGame">Start</button>
-            <button id="instructions" onclick="window.location.href='instructions.html';">Instructions</button>
-            <button id="endGame" onclick="endGame()">End Game</button>
+            <button onclick="window.location.href='./story.html'">Story</button>
+            <button id="instructions">Instructions</button>
+            <button id="endGame">End Game</button>
         </div>
     </div>
-
-    <!-- Pause Button -->
-    <button id="pauseButton" class="pause-button" onclick="togglePause()" style="display: none;">Pause</button>
-
-    <div id="bagIcon" class="bag-icon" style="display: none;" onclick="openInventory()">
-        <div class="bag-content">
-            <p style="color: #7ED4AD;">Inventory</p>
-            <img src="bag.jpeg" alt="Inventory" />
+    
+    <div id="loadingScreen" style="display: none;">
+        <div class="loadingContent">
+            <p class="loadingText">Loading Assets...</p>
+            <div class="spinner"></div>
         </div>
     </div>
-
-    <!-- Inventory Modal -->
-    <div id="inventoryModal" class="modal" style="display: none;">
+    
+    <!-- Custom Modal -->
+    <div id="custom-modal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="closeInventory()">&times;</span>
-            <h2 style="color:#7ED4AD;">Inventory</h2>
-
-            <div class="inventory-boxes">
-                <div class="inventory-box"></div>
-                <div class="inventory-box"></div>
+            <h2 id="modal-title"></h2>
+            <div id="modal-text"></div>
+            <div id="modal-buttons">
+                <button id="modal-ok">OK</button>
+                <button id="modal-confirm">Yes</button>
+                <button id="modal-cancel">No</button>
             </div>
         </div>
     </div>
 
-    <!-- Fire Strength Bar -->
-    <div id="fireStrengthContainer" class="fire-strength-container" style="display: none;">
-        <div id="fireStrengthBar" class="fire-strength-bar" style="width: 50%;">
-            <i class="fas fa-fire"></i> Fire Strength: 50%
+    <!-- In-Game UI -->
+    <button id="pauseButton" class="pause-button" style="display: none;">Pause</button>
+    <div id="bagIcon" class="bag-icon" style="display: none;">
+        <div class="bag-content">
+            <p style="color: #7ED4AD;">Inventory</p>
+            <img src="/bag.jpeg" alt="Inventory" />
         </div>
+    </div>
+    <div id="inventoryModal" class="modal"  style="display: none;">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 style="color:#7ED4AD;">Inventory</h2>
+            <div class="inventory-boxes">
+                <div class="inventory-box" id="extinguisherBox"></div>
+                <div class="inventory-box"></div>
+            </div>
+        </div>
+    </div>
+    <div id="timercontainer" class="timer-container" style="display: none;">
+        <div id="gameTimer" class="game-timer"><i class="lol">Timer: 3:00</i></div>
+    </div>
+    <div id="fireStrengthContainer" class="fire-strength-container" style="display: none;">
+        <div id="fireStrengthBar" class="fire-strength-bar"><i class="fas fa-fire"></i> Fire Strength: 0%</div>
+    </div>
+    <div id="HealthBarContainer" class="fire-strength-container1" style="display: none;">
+        <div id="HealthBar" class="fire-strength-bar"><i class="fas fa-fire"></i> Health : 100%</div>
     </div>
 
     <!-- Three.js Canvas -->
-    <canvas class="canvas_webgl" style="display: none;"></canvas>
+    <canvas class="canvas_webgl"></canvas>
 
-<!-- ////////////////////////////////////////////////////////////////////////////////////////// -->
-<script>
-// Constants and configurations
-// Constants and configurations
-// Constants and configurations
-const CONFIG = {
-    modelPaths: {
-        house: '/models/home.glb',
-        character: '/models/jatka.fbx',
-        collision: '/models/home_outline1.glb',
-        pickAnimation: '/models/Pick_fruit.fbx'
-    },
-    character: {
-        scale: new THREE.Vector3(0.03, 0.025, 0.03),
-        startPosition: new THREE.Vector3(4, 2, 4),
-        hitboxSize: new THREE.Vector3(0.8, 3, 0.8)
-    },
-    camera: {
-        offset: new THREE.Vector3(0, 5, -5),
-        lookOffset: new THREE.Vector3(0, 1.5, 0),
-        sensitivity: 0.002
-    },
-    movement: {
-        speed: 0.04,
-        rotationSpeed: 0.015,
-        slideOffset: 0.05
-    }
-};
-
-// Asset loader class
-class AssetLoader {
-    static async loadGLTF(path) {
-        const loader = new THREE.GLTFLoader();
-        try {
-            const gltf = await new Promise((resolve, reject) => {
-                loader.load(path, 
-                    (gltf) => resolve(gltf),
-                    undefined,
-                    (error) => reject(new Error(`Failed to load GLTF model ${path}: ${error.message}`))
-                );
-            });
-            return gltf;
-        } catch (error) {
-            console.error(error);
-            throw error;
-        }
-    }
-
-    static async loadFBX(path) {
-        const loader = new THREE.FBXLoader();
-        try {
-            const fbx = await new Promise((resolve, reject) => {
-                loader.load(path,
-                    (fbx) => resolve(fbx),
-                    undefined,
-                    (error) => reject(new Error(`Failed to load FBX model ${path}: ${error.message}`))
-                );
-            });
-            return fbx;
-        } catch (error) {
-            console.error(error);
-            throw error;
-        }
-    }
-}
-
-// Game class
-class Game {
-    constructor() {
-        // Initialize properties
-        this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        this.renderer = new THREE.WebGLRenderer({ 
-            antialias: true, 
-            canvas: document.querySelector('.canvas_webgl') 
-        });
-        this.clock = new THREE.Clock();
-        this.mixer = null;
-        this.actions = {};
-        this.move = { forward: false, backward: false, left: false, right: false };
-        this.collisionObjects = [];
-        this.isPaused = false;
-        this.mouseX = 0;
-        this.mouseY = 0;
-        this.characterModel = null;
-
-        // Initialize game systems
-        this.initRenderer();
-        this.initLights();
-        this.initEventListeners();
-    }
-
-    initRenderer() {
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        this.renderer.shadowMap.enabled = true;
-        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    }
-
-    initLights() {
-        // Ambient light
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-        this.scene.add(ambientLight);
-
-        // Directional light
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(5, 5, 5);
-        directionalLight.castShadow = true;
-        directionalLight.shadow.mapSize.width = 1024;
-        directionalLight.shadow.mapSize.height = 1024;
-        this.scene.add(directionalLight);
-    }
-
-    initEventListeners() {
-        // Window resize
-        window.addEventListener('resize', () => this.handleResize());
-        
-        // Keyboard controls
-        document.addEventListener('keydown', (e) => this.handleKeyDown(e));
-        document.addEventListener('keyup', (e) => this.handleKeyUp(e));
-        
-        // Mouse movement
-        document.addEventListener('mousemove', (e) => this.handleMouseMove(e));
-        
-        // Pause button
-        const pauseButton = document.getElementById('pauseButton');
-        if (pauseButton) {
-            pauseButton.addEventListener('click', () => this.togglePause());
-        }
-    }
-
-    handleResize() {
-        this.camera.aspect = window.innerWidth / window.innerHeight;
-        this.camera.updateProjectionMatrix();
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
-    handleKeyDown(event) {
-        switch(event.code) {
-            case 'KeyW': this.move.forward = true; break;
-            case 'KeyS': this.move.backward = true; break;
-            case 'KeyA': this.move.left = true; break;
-            case 'KeyD': this.move.right = true; break;
-            case 'Escape': this.togglePause(); break;
-        }
-    }
-
-    handleKeyUp(event) {
-        switch(event.code) {
-            case 'KeyW': this.move.forward = false; break;
-            case 'KeyS': this.move.backward = false; break;
-            case 'KeyA': this.move.left = false; break;
-            case 'KeyD': this.move.right = false; break;
-        }
-    }
-
-    handleMouseMove(event) {
-        this.mouseX = (event.clientX / window.innerWidth) - 0.5;
-        this.mouseY = (event.clientY / window.innerHeight) - 0.5;
-    }
-
-    async loadModels() {
-        try {
-            // Load house
-            const houseGLTF = await AssetLoader.loadGLTF(CONFIG.modelPaths.house);
-            this.houseModel = houseGLTF.scene;
-            this.scene.add(this.houseModel);
-
-            // Load character
-            const characterFBX = await AssetLoader.loadFBX(CONFIG.modelPaths.character);
-            this.characterModel = characterFBX;
-            
-            // Normalize skinning weights
-            this.characterModel.traverse((child) => {
-                if (child.isMesh && child.geometry && child.geometry.attributes.skinWeight) {
-                    const weights = child.geometry.attributes.skinWeight;
-                    for (let i = 0; i < weights.count; i++) {
-                        const x = weights.getX(i);
-                        const y = weights.getY(i);
-                        const z = weights.getZ(i);
-                        const w = weights.getW(i);
-                        const sum = x + y + z + w;
-                        if (sum !== 0) {
-                            weights.setXYZW(i, x/sum, y/sum, z/sum, w/sum);
-                        }
-                    }
-                }
-            });
-            this.setupCharacter();
-
-            // Load collision model
-            const collisionGLTF = await AssetLoader.loadGLTF(CONFIG.modelPaths.collision);
-            this.setupCollision(collisionGLTF.scene);
-
-            // Show UI elements
-            this.showUIElements();
-            
-            // Start animation loop
-            this.animate();
-        } catch (error) {
-            console.error('Failed to load models:', error);
-            alert('Failed to start game. Please refresh the page.');
-        }
-    }
-
-    setupCharacter() {
-        this.characterModel.scale.copy(CONFIG.character.scale);
-        this.characterModel.position.copy(CONFIG.character.startPosition);
-        
-        // Setup character animations
-        this.mixer = new THREE.AnimationMixer(this.characterModel);
-        if (this.characterModel.animations.length) {
-            this.actions.idle = this.mixer.clipAction(this.characterModel.animations[0]);
-            this.actions.idle.play();
-        }
-
-        this.scene.add(this.characterModel);
-    }
-
-    setupCollision(collisionModel) {
-        collisionModel.traverse((child) => {
-            if (child.isMesh) {
-                child.visible = false; // Hide collision meshes
-                this.collisionObjects.push(child);
-            }
-        });
-        this.scene.add(collisionModel);
-    }
-
-    updateCamera() {
-        if (!this.characterModel) return;
-
-        const characterPosition = new THREE.Vector3();
-        this.characterModel.getWorldPosition(characterPosition);
-
-        // Calculate camera position
-        const cameraPosition = new THREE.Vector3();
-        cameraPosition.copy(CONFIG.camera.offset);
-        cameraPosition.applyQuaternion(this.characterModel.quaternion);
-        cameraPosition.add(characterPosition);
-
-        // Smooth camera movement
-        this.camera.position.lerp(cameraPosition, 0.1);
-
-        // Calculate look target with mouse influence
-        const lookTarget = new THREE.Vector3();
-        lookTarget.copy(characterPosition).add(CONFIG.camera.lookOffset);
-        lookTarget.x += this.mouseX * CONFIG.camera.sensitivity;
-        lookTarget.y += this.mouseY * CONFIG.camera.sensitivity;
-
-        this.camera.lookAt(lookTarget);
-    }
-
-    updateCharacterMovement(delta) {
-        if (!this.characterModel) return;
-
-        const moveSpeed = CONFIG.movement.speed * delta;
-        const rotationSpeed = CONFIG.movement.rotationSpeed;
-        
-        // Calculate movement direction
-        const movement = new THREE.Vector3();
-        if (this.move.forward) movement.z -= moveSpeed;
-        if (this.move.backward) movement.z += moveSpeed;
-        if (this.move.left) movement.x -= moveSpeed;
-        if (this.move.right) movement.x += moveSpeed;
-
-        // Apply movement relative to character rotation
-        movement.applyQuaternion(this.characterModel.quaternion);
-        
-        // Check for collisions
-        const raycaster = new THREE.Raycaster();
-        const position = this.characterModel.position.clone();
-        
-        // Cast rays in movement direction
-        if (movement.length() > 0) {
-            raycaster.set(position, movement.clone().normalize());
-            const intersects = raycaster.intersectObjects(this.collisionObjects);
-            
-            if (intersects.length === 0 || intersects[0].distance > movement.length()) {
-                this.characterModel.position.add(movement);
-            } else {
-                // Handle sliding along walls
-                const normal = intersects[0].face.normal;
-                const slide = movement.clone()
-                    .projectOnPlane(normal)
-                    .multiplyScalar(CONFIG.movement.slideOffset);
-                this.characterModel.position.add(slide);
-            }
-        }
-    }
-
-    animate() {
-        if (this.isPaused) return;
-
-        requestAnimationFrame(() => this.animate());
-        
-        const delta = this.clock.getDelta();
-        this.updateCharacterMovement(delta);
-        
-        if (this.mixer) this.mixer.update(delta);
-        this.updateCamera();
-        this.renderer.render(this.scene, this.camera);
-    }
-
-    togglePause() {
-        this.isPaused = !this.isPaused;
-        if (!this.isPaused) this.animate();
-        
-        // Update UI
-        const pauseButton = document.getElementById('pauseButton');
-        if (pauseButton) {
-            pauseButton.textContent = this.isPaused ? 'Resume' : 'Pause';
-        }
-    }
-
-    showUIElements() {
-        document.getElementById('pauseButton').style.display = 'block';
-        document.getElementById('bagIcon').style.display = 'block';
-        document.getElementById('fireStrengthContainer').style.display = 'block';
-    }
-}
-
-// Game initialization
-document.getElementById('startGame').addEventListener('click', () => {
-    document.getElementById('ui-screen').style.display = 'none';
-    document.querySelector('.canvas_webgl').style.display = 'block';
-    
-    const game = new Game();
-    game.loadModels().catch(error => {
-        console.error('Failed to initialize game:', error);
-        alert('Failed to start game. Please refresh the page.');
-    });
-});
-
-// Inventory functions
-function openInventory() {
-    document.getElementById('inventoryModal').style.display = 'block';
-}
-
-function closeInventory() {
-    document.getElementById('inventoryModal').style.display = 'none';
-}
-
-function endGame() {
-    window.location.reload();
-}
-</script>
+    <!-- Main Game Script -->
+    <script type="module" src="/main.js"></script>
 </body>
 </html>
+
